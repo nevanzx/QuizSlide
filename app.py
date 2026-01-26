@@ -25,41 +25,47 @@ def upload_file():
     if 'excel_file' not in request.files:
         flash('No file selected')
         return redirect(request.url)
-    
+
     file = request.files['excel_file']
-    
+
     if file.filename == '':
         flash('No file selected')
         return redirect(request.url)
-    
+
     if file and file.filename.lower().endswith(('.xlsx', '.xls')):
         # Save the file temporarily
         filepath = os.path.join('uploads', file.filename)
         os.makedirs('uploads', exist_ok=True)
         file.save(filepath)
-        
+
         try:
             # Read the Excel file
             df = pd.read_excel(filepath)
-            
+
             # Check if all required columns exist
             missing_cols = [col for col in EXPECTED_COLUMNS if col not in df.columns]
             if missing_cols:
                 flash(f'Missing required columns: {", ".join(missing_cols)}')
                 return redirect(url_for('index'))
-            
+
             # Extract unique topics
             unique_topics = df['Topic'].dropna().unique().tolist()
-            
+
+            # Count questions per topic
+            topic_counts = {}
+            for topic in unique_topics:
+                topic_counts[topic] = len(df[df['Topic'] == topic])
+
             # Store the dataframe in session or temporary storage
             # For simplicity, we'll save it as a JSON file temporarily
             data_dict = df.to_dict('records')
             data_json = json.dumps(data_dict)
-            
-            return render_template('select_topics.html', 
-                                 topics=unique_topics, 
+
+            return render_template('select_topics.html',
+                                 topics=unique_topics,
                                  data=data_json,
-                                 total_questions=len(df))
+                                 total_questions=len(df),
+                                 topic_counts=topic_counts)
         except Exception as e:
             flash(f'Error reading Excel file: {str(e)}')
             return redirect(url_for('index'))
@@ -73,7 +79,6 @@ def generate_quiz():
         # Get form data
         selected_topics = request.form.getlist('topics')
         timer_duration = int(request.form.get('timer_duration', 60))  # Default 60 seconds
-        num_questions_str = request.form.get('num_questions', '').strip()
 
         if not selected_topics:
             flash('Please select at least one topic')
@@ -96,48 +101,61 @@ def generate_quiz():
             flash('No questions found for the selected topics')
             return redirect(url_for('index'))
 
-        # Limit the number of questions if specified
-        if num_questions_str:
-            try:
-                num_questions = int(num_questions_str)
-                if num_questions < 1:
-                    flash('Number of questions must be at least 1')
-                    return redirect(url_for('index'))
-
-                if len(filtered_df) > num_questions:
-                    # Randomly select the specified number of questions
-                    filtered_df = filtered_df.sample(n=num_questions, random_state=42)
-            except ValueError:
-                flash('Invalid number of questions specified')
-                return redirect(url_for('index'))
-
-        # Generate quiz slides
+        # Process each selected topic to get specific number of questions
         quiz_data = {
             'questions': [],
             'answers': []
         }
 
-        for _, row in filtered_df.iterrows():
-            question_data = {
-                'question': row['QUESTION'],
-                'choices': [
-                    {'label': 'A', 'text': row['Choice A']},
-                    {'label': 'B', 'text': row['Choice B']},
-                    {'label': 'C', 'text': row['Choice C']},
-                    {'label': 'D', 'text': row['Choice D']}
-                ],
-                'answer': row['Answer'],
-                'correct_answer_text': row['Correct answer in Words']
-            }
-            quiz_data['questions'].append(question_data)
-            quiz_data['answers'].append({
-                'question': row['QUESTION'],
-                'answer': row['Answer'],
-                'correct_answer_text': row['Correct answer in Words']
-            })
+        for topic in selected_topics:
+            # Get the number of questions requested for this topic
+            topic_cleaned = topic.replace(' ', '_').replace('/', '_').replace('-', '_')
+            num_questions_key = f'topic_{topic_cleaned}_count'
+            num_questions_str = request.form.get(num_questions_key, '').strip()
 
-        # Shuffle questions
-        random.shuffle(quiz_data['questions'])
+            if num_questions_str:
+                try:
+                    num_questions = int(num_questions_str)
+                    if num_questions < 1:
+                        flash(f'Number of questions for topic "{topic}" must be at least 1')
+                        return redirect(url_for('index'))
+
+                    # Get all questions for this topic
+                    topic_questions = filtered_df[filtered_df['Topic'] == topic]
+
+                    if len(topic_questions) < num_questions:
+                        flash(f'There are only {len(topic_questions)} questions available for topic "{topic}", but you requested {num_questions}')
+                        return redirect(url_for('index'))
+
+                    # Randomly select the specified number of questions from this topic only
+                    selected_topic_questions = topic_questions.sample(n=num_questions, random_state=42)
+
+                    # Add these questions to the quiz in order
+                    for _, row in selected_topic_questions.iterrows():
+                        question_data = {
+                            'question': row['QUESTION'],
+                            'topic': row['Topic'],  # Add topic information
+                            'choices': [
+                                {'label': 'A', 'text': row['Choice A']},
+                                {'label': 'B', 'text': row['Choice B']},
+                                {'label': 'C', 'text': row['Choice C']},
+                                {'label': 'D', 'text': row['Choice D']}
+                            ],
+                            'answer': row['Answer'],
+                            'correct_answer_text': row['Correct answer in Words']
+                        }
+                        quiz_data['questions'].append(question_data)
+                        quiz_data['answers'].append({
+                            'question': row['QUESTION'],
+                            'answer': row['Answer'],
+                            'correct_answer_text': row['Correct answer in Words']
+                        })
+                except ValueError:
+                    flash(f'Invalid number of questions specified for topic "{topic}"')
+                    return redirect(url_for('index'))
+
+        # Note: We don't shuffle questions anymore to maintain topic order
+        # The questions are already ordered by topic as requested
 
         # Render the quiz template
         return render_template('quiz.html',

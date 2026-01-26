@@ -32,9 +32,26 @@
         }
         .topic-checkbox {
             margin: 5px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
         }
-        .topic-checkbox input {
+        .topic-checkbox input[type="checkbox"] {
             margin-right: 10px;
+        }
+        .topic-question-count {
+            margin-top: 8px;
+            margin-left: 20px;
+        }
+        .topic-question-count label {
+            display: inline-block;
+            width: 200px;
+            font-weight: normal;
+        }
+        .topic-question-count input {
+            width: 80px;
+            padding: 5px;
         }
         button {
             background-color: #4CAF50;
@@ -69,43 +86,83 @@
             border-radius: 5px;
             margin-bottom: 20px;
         }
+        .instructions {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeaa7;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Select Topics for Quiz</h1>
-        
+
+        <div class="instructions">
+            <p><strong>Note:</strong> Select topics and specify how many questions you want from each topic. Questions will appear in topic order.</p>
+        </div>
+
         <div class="selected-info">
             <p><strong>Total Questions Available:</strong> {{ total_questions }}</p>
             <p><strong>Unique Topics Found:</strong> {{ topics|length }}</p>
         </div>
-        
+
         <form action="{{ url_for('generate_quiz') }}" method="post">
             <input type="hidden" name="data" value="{{ data }}">
-            
+
             <div class="timer-setting">
                 <label for="timer_duration">Time per question (seconds):</label>
                 <input type="number" id="timer_duration" name="timer_duration" value="60" min="10" max="300">
             </div>
 
             <div class="form-group">
-                <label for="num_questions">Number of questions to generate (leave empty for all):</label>
-                <input type="number" id="num_questions" name="num_questions" min="1" max="{{ total_questions }}" placeholder="Leave blank for all questions">
-            </div>
-            
-            <div class="form-group">
-                <label><strong>Select Topics:</strong></label>
+                <label><strong>Select Topics and Number of Questions:</strong></label>
                 {% for topic in topics %}
                 <div class="topic-checkbox">
-                    <input type="checkbox" id="topic_{{ loop.index }}" name="topics" value="{{ topic }}" checked>
+                    <input type="checkbox" id="topic_{{ loop.index }}" name="topics" value="{{ topic }}" checked onchange="toggleQuestionCount({{ loop.index }})">
                     <label for="topic_{{ loop.index }}">{{ topic }}</label>
+
+                    <div class="topic-question-count">
+                        <label for="topic_{{ loop.index }}_count">Questions from this topic:</label>
+                        <input type="number"
+                               id="topic_{{ loop.index }}_count"
+                               name="topic_{{ topic|replace(' ', '_')|replace('/', '_')|replace('-', '_') }}_count"
+                               min="1"
+                               max="{{ topic_counts[topic] }}"
+                               value="{{ topic_counts[topic] }}"
+                               placeholder="Enter number">
+                        <small>Max available: {{ topic_counts[topic] }} questions</small>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
-            
+
             <button type="submit" class="generate-btn">Generate Quiz Slides</button>
             <a href="{{ url_for('index') }}"><button type="button" class="back-button">Back</button></a>
         </form>
     </div>
+
+    <script>
+        function toggleQuestionCount(index) {
+            const checkbox = document.getElementById('topic_' + index);
+            const countInput = document.getElementById('topic_' + index + '_count');
+
+            if (checkbox.checked) {
+                countInput.disabled = false;
+                countInput.parentElement.style.display = 'block';
+            } else {
+                countInput.disabled = true;
+                countInput.parentElement.style.display = 'none';
+            }
+        }
+
+        // Initialize the display state for all topic inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for topic in topics %}
+            toggleQuestionCount({{ loop.index }});
+            {% endfor %}
+        });
+    </script>
 </body>
 </html>

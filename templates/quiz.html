@@ -150,23 +150,13 @@
                 {% endfor %}
             </div>
         </div>
-        <div class="navigation">
-            {% if loop.index > 1 %}
-            <button onclick="showSlide({{ loop.index - 1 }})">Previous</button>
-            {% endif %}
-            {% if loop.index < questions|length %}
-            <button onclick="showSlide({{ loop.index + 1 }})">Next</button>
-            {% else %}
-            <button onclick="showSlide({{ questions|length + 1 }})">Show Answers</button>
-            {% endif %}
-        </div>
     </div>
     {% endfor %}
 
     <!-- Answer Slide -->
     <div class="slide answer-slide" id="slide-{{ questions|length + 1 }}">
-        <h2 style="font-size: 32px;">Correct Answers</h2>
-        <div class="slide-content">
+        <h2 style="font-size: 32px; margin-top: 0;">Correct Answers</h2>
+        <div class="slide-content" style="padding-bottom: 100px;">
             {% for answer in answers %}
             <div class="answer-item">
                 <strong style="font-size: 22px;">Q{{ loop.index }}:</strong><br>
@@ -175,10 +165,6 @@
                 <span style="font-size: 20px;">{{ answer.answer }} ({{ answer.correct_answer_text }})</span>
             </div>
             {% endfor %}
-        </div>
-        <div class="navigation">
-            <button onclick="showSlide({{ questions|length }})">Previous</button>
-            <button onclick="showSlide(1)">Restart Quiz</button>
         </div>
     </div>
     
@@ -268,10 +254,59 @@
             document.getElementById(`slide-${slideNumber}`).classList.add('active');
             currentSlide = slideNumber;
 
+            // Update navigation buttons based on current slide
+            updateNavigation();
+
             // Start timer if it's a question slide
             if (slideNumber <= {{ questions|length }}) {
                 startTimer(slideNumber);
             }
+        }
+
+        // Update navigation buttons based on current slide
+        function updateNavigation() {
+            // Remove any existing navigation elements
+            const navElements = document.querySelectorAll('.navigation');
+            navElements.forEach(el => el.remove());
+
+            // Create navigation for current slide
+            const slide = document.getElementById(`slide-${currentSlide}`);
+            const navDiv = document.createElement('div');
+            navDiv.className = 'navigation';
+
+            if (currentSlide === 1) {
+                // First slide: only Next button
+                navDiv.innerHTML = `<button onclick="showSlide(2)">Next</button>`;
+            } else if (currentSlide < {{ questions|length }}) {
+                // Middle question slides: Previous and Next buttons
+                navDiv.innerHTML = `
+                    <button onclick="showSlide(${currentSlide - 1})">Previous</button>
+                    <button onclick="showSlide(${currentSlide + 1})">Next</button>
+                `;
+            } else if (currentSlide === {{ questions|length }}) {
+                // Last question slide: Previous and Show Answers buttons
+                navDiv.innerHTML = `
+                    <button onclick="showSlide(${currentSlide - 1})">Previous</button>
+                    <button onclick="showSlide(${currentSlide + 1})">Show Answers</button>
+                `;
+            } else if (currentSlide === {{ questions|length + 1 }}) {
+                // Answer slide: Previous and Restart buttons (fixed at bottom)
+                navDiv.innerHTML = `
+                    <button onclick="showSlide({{ questions|length }})">Previous</button>
+                    <button onclick="showSlide(1)">Restart Quiz</button>
+                `;
+                navDiv.style.position = 'fixed';
+                navDiv.style.bottom = '20px';
+                navDiv.style.left = '50%';
+                navDiv.style.transform = 'translateX(-50%)';
+                navDiv.style.background = 'white';
+                navDiv.style.padding = '10px';
+                navDiv.style.borderRadius = '8px';
+                navDiv.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+                navDiv.style.zIndex = '1000';
+            }
+
+            slide.appendChild(navDiv);
         }
 
         // Initialize the first slide

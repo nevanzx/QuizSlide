@@ -129,10 +129,10 @@
                                id="topic_{{ loop.index }}_count"
                                name="topic_{{ topic|replace(' ', '_')|replace('/', '_')|replace('-', '_') }}_count"
                                min="1"
-                               max="{{ topic_counts[topic] }}"
+                               max="{{ original_topic_counts[topic] }}"
                                value="{{ topic_counts[topic] }}"
                                placeholder="Enter number">
-                        <small>Max available: {{ topic_counts[topic] }} questions</small>
+                        <small>Max available: {{ original_topic_counts[topic] }} questions</small>
                     </div>
                 </div>
                 {% endfor %}

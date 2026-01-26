@@ -53,8 +53,12 @@ def upload_file():
 
             # Count questions per topic
             topic_counts = {}
+            original_topic_counts = {}
             for topic in unique_topics:
-                topic_counts[topic] = len(df[df['Topic'] == topic])
+                topic_count = len(df[df['Topic'] == topic])
+                # Default to 10, but cap at the actual number of questions available
+                topic_counts[topic] = min(10, topic_count)
+                original_topic_counts[topic] = topic_count
 
             # Store the dataframe in session or temporary storage
             # For simplicity, we'll save it as a JSON file temporarily
@@ -65,7 +69,8 @@ def upload_file():
                                  topics=unique_topics,
                                  data=data_json,
                                  total_questions=len(df),
-                                 topic_counts=topic_counts)
+                                 topic_counts=topic_counts,
+                                 original_topic_counts=original_topic_counts)
         except Exception as e:
             flash(f'Error reading Excel file: {str(e)}')
             return redirect(url_for('index'))

@@ -436,6 +436,17 @@
                 }
             }
 
+            // Reset all timers to initial duration
+            for (let i = 1; i <= {{ questions|length }}; i++) {
+                timers[i] = timerDuration;
+                // Update timer display to show full time again
+                const timerElement = document.getElementById(`timer-${i}`);
+                const progressBarElement = document.getElementById(`progress-${i}`);
+                if (timerElement && progressBarElement) {
+                    updateTimerDisplay(i, timerElement, progressBarElement);
+                }
+            }
+
             // Show the requested slide
             document.getElementById(`slide-${slideNumber}`).classList.add('active');
             currentSlide = slideNumber;

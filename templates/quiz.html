@@ -439,10 +439,44 @@
             slide.appendChild(navDiv);
         }
 
+        // Fullscreen functionality
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
         // Initialize the first slide
         window.onload = function() {
             initTimers();
             showSlide(1);
+
+            // Create fullscreen button
+            const fsButton = document.createElement('button');
+            fsButton.id = 'fullscreenBtn';
+            fsButton.innerHTML = '⛶'; // Unicode for fullscreen icon
+            fsButton.title = 'Toggle Fullscreen';
+            fsButton.style.position = 'fixed';
+            fsButton.style.bottom = '20px';
+            fsButton.style.right = '20px';
+            fsButton.style.zIndex = '1001';
+            fsButton.style.padding = '10px';
+            fsButton.style.fontSize = '18px';
+            fsButton.style.border = 'none';
+            fsButton.style.borderRadius = '50%';
+            fsButton.style.backgroundColor = '#4CAF50';
+            fsButton.style.color = 'white';
+            fsButton.style.cursor = 'pointer';
+            fsButton.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+            fsButton.onclick = toggleFullscreen;
+
+            document.body.appendChild(fsButton);
         };
 
         // Handle keyboard navigation

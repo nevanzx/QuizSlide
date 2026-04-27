@@ -133,7 +133,7 @@ def generate_quiz():
                         return redirect(url_for('index'))
 
                     # Randomly select the specified number of questions from this topic only
-                    selected_topic_questions = topic_questions.sample(n=num_questions, random_state=42)
+                    selected_topic_questions = topic_questions.sample(n=num_questions)
 
                     # Add these questions to the quiz in order
                     for _, row in selected_topic_questions.iterrows():

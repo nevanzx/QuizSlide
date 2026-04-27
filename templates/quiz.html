@@ -4,571 +4,633 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiz Slides</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --font-scale: 1;
+            --bg: #f8f7fc;
+            --surface: #ffffff;
+            --purple-50: #f5f3ff;
+            --purple-100: #ede9fe;
+            --purple-200: #ddd6fe;
+            --purple-500: #8b5cf6;
+            --purple-600: #7c3aed;
+            --purple-700: #6d28d9;
+            --purple-900: #3b0764;
+            --text: #1e1b4b;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --border: #e5e7eb;
+            --border-light: #f3f4f6;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'DM Sans', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f0f0f0;
+            background: var(--bg);
             height: 100vh;
             overflow: hidden;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
         }
+
+        /* === Slide === */
         .slide {
             display: none;
-            width: 90%;
-            max-width: 1000px;
-            height: 85vh;
-            margin: 2.5vh auto;
-            padding: 20px;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
             position: relative;
-            overflow-y: auto;
+            width: 90%;
+            max-width: 920px;
+            height: 86vh;
+            margin: 4vh auto;
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 32px rgba(0,0,0,0.06);
+            z-index: 1;
+            overflow: hidden;
+            animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
-        .slide.active {
-            display: block;
+
+        .slide.active { display: flex; flex-direction: column; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
-        .question-number {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 16px;
-            color: #666;
-            font-weight: bold;
+
+        /* === Progress Bar === */
+        .progress-track {
+            height: 4px;
+            background: var(--border-light);
+            border-radius: 4px 4px 0 0;
+            overflow: hidden;
+            flex-shrink: 0;
         }
-        .timer {
-            position: absolute;
-            top: 10px;
-            left: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #d9534f;
+
+        .progress-fill {
+            height: 100%;
+            background: var(--purple-600);
+            width: 0%;
+            transition: width 0.9s linear;
         }
-        .topic-name {
-            position: absolute;
-            top: 40px; /* Positioned below the timer */
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 16px;
-            color: #333;
-            font-weight: bold;
-            background-color: #e7f3ff;
-            padding: 3px 10px;
-            border-radius: 12px;
-            z-index: 10;
-        }
-        .question {
-            font-size: 20px;
-            margin-bottom: 20px;
-            line-height: 1.4;
-            flex: 1;
+
+        /* === Header === */
+        .header {
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            padding: 18px 28px;
+            border-bottom: 1px solid var(--border-light);
+            flex-shrink: 0;
         }
-        .choices {
-            margin: 20px 0;
+
+        .slide-counter {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: calc(13px * var(--font-scale));
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .slide-counter .current {
+            color: var(--purple-600);
+            font-weight: 600;
+            font-size: calc(16px * var(--font-scale));
+        }
+
+        .topic-badge {
+            font-size: calc(12px * var(--font-scale));
+            font-weight: 600;
+            color: var(--purple-700);
+            background: var(--purple-100);
+            padding: 4px 14px;
+            border-radius: 100px;
+            letter-spacing: 0.3px;
+        }
+
+        .timer-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: calc(14px * var(--font-scale));
+            font-weight: 600;
+            padding: 5px 14px;
+            border-radius: 100px;
+            transition: all 0.3s ease;
+            background: var(--purple-50);
+            color: var(--purple-600);
+        }
+
+        .timer-pill.warning {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .timer-pill.danger {
+            background: #fee2e2;
+            color: #dc2626;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .timer-pill.safe {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* === Content === */
+        .content {
             flex: 1;
+            overflow-y: auto;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
+
+        .content::-webkit-scrollbar { width: 5px; }
+        .content::-webkit-scrollbar-track { background: transparent; }
+        .content::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        /* === Question === */
+        .question-text {
+            font-size: calc(21px * var(--font-scale));
+            font-weight: 600;
+            line-height: 1.45;
+            color: var(--text);
+        }
+
+        /* === Choices === */
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         .choice {
-            padding: 15px;
-            margin: 10px 0;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            font-size: 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 15px 18px;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            transition: all 0.2s ease;
         }
-        .navigation {
-            margin-top: 20px;
-            text-align: center;
-            position: absolute;
+
+        .choice:hover {
+            border-color: var(--purple-200);
+            background: var(--purple-50);
+        }
+
+        .choice-letter {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: calc(13px * var(--font-scale));
+            font-weight: 600;
+            color: var(--purple-600);
+            background: var(--purple-100);
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .choice-text {
+            font-size: calc(16px * var(--font-scale));
+            line-height: 1.5;
+            color: var(--text);
+            padding-top: 3px;
+        }
+
+        /* === Navigation === */
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 28px 20px;
+            border-top: 1px solid var(--border-light);
+            flex-shrink: 0;
+        }
+
+        .btn {
+            font-family: 'DM Sans', sans-serif;
+            font-size: calc(14px * var(--font-scale));
+            font-weight: 600;
+            padding: 10px 26px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--purple-600);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--purple-700);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124,58,237,0.3);
+        }
+
+        .btn-ghost {
+            background: var(--bg);
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border);
+        }
+        .btn-ghost:hover {
+            background: var(--border-light);
+            color: var(--text);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        }
+
+        /* === Answer Slide === */
+        .answer-slide .content { padding-bottom: 90px; }
+
+        .answer-title {
+            font-size: calc(26px * var(--font-scale));
+            font-weight: 700;
+            color: var(--purple-600);
+            margin: 0;
+        }
+
+        .answer-item {
+            padding: 16px 18px;
+            background: var(--bg);
+            border: 1.5px solid var(--border);
+            border-left: 4px solid var(--purple-500);
+            border-radius: 10px;
+            font-size: calc(15px * var(--font-scale));
+            line-height: 1.5;
+        }
+
+        .answer-q-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: calc(16px * var(--font-scale));
+            color: var(--purple-600);
+        }
+
+        .answer-topic-tag {
+            font-size: calc(11px * var(--font-scale));
+            font-weight: 600;
+            color: var(--purple-700);
+            background: var(--purple-100);
+            padding: 2px 9px;
+            border-radius: 100px;
+            margin-left: 8px;
+        }
+
+        .answer-question {
+            display: block;
+            margin: 5px 0 7px;
+            color: var(--text);
+        }
+
+        .answer-correct {
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        .answer-correct span {
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+
+        /* === Fixed Controls === */
+        .controls {
+            position: fixed;
             bottom: 20px;
-            width: calc(100% - 40px); /* Account for slide padding */
+            z-index: 1001;
+            display: flex;
+            gap: 6px;
         }
-        .navigation:not(.fixed) {
-            position: absolute;
+
+        .controls.left { left: 20px; }
+        .controls.right { right: 20px; }
+
+        .ctrl-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--text-secondary);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
+
+        .ctrl-btn:hover {
+            background: var(--purple-50);
+            border-color: var(--purple-200);
+            color: var(--purple-600);
+            transform: translateY(-1px);
+        }
+
+        /* Answer slide fixed nav */
         #answer-nav {
             position: fixed !important;
             bottom: 20px !important;
             left: 50% !important;
             transform: translateX(-50%) !important;
-            z-index: 1000 !important;
-            background: white !important;
-            padding: 10px !important;
-            border-radius: 8px !important;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            margin: 0 5px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .answer-slide {
-            background-color: #e8f5e9;
-            display: flex;
-            flex-direction: column;
-        }
-        .answer-item {
-            margin: 15px 0;
-            padding: 12px;
-            background-color: white;
-            border-radius: 6px;
-            border-left: 4px solid #4CAF50;
-            font-size: 18px;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 12px;
-            background-color: #e0e0e0;
-            border-radius: 6px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            position: absolute;
-            top: 40px;
-            left: 0;
-        }
-        .progress {
-            height: 100%;
-            background-color: #4CAF50;
-            width: 0%;
-            transition: width 0.3s;
-        }
-        .slide-content {
-            display: flex;
-            flex-direction: column;
-            height: calc(100% - 80px); /* Account for timer and progress */
-            margin-top: 30px;
+            z-index: 1001 !important;
+            display: flex !important;
+            gap: 10px !important;
+            padding: 10px 14px !important;
+            border-radius: 12px !important;
+            background: var(--surface) !important;
+            border: 1.5px solid var(--border) !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
         }
 
-        /* Responsive design for tablets and mobile devices */
+        /* === Responsive === */
         @media screen and (max-width: 1024px) {
-            .slide {
-                width: 95%;
-                height: 88vh;
-                padding: 15px;
-            }
-            .question {
-                font-size: 18px;
-            }
-            .choice {
-                padding: 12px;
-                font-size: 16px;
-            }
-            .question-number {
-                font-size: 14px;
-                top: 8px;
-                right: 15px;
-            }
-            .timer {
-                font-size: 16px;
-                top: 8px;
-                left: 15px;
-            }
-            .topic-name {
-                font-size: 14px;
-                top: 38px; /* Adjusted to be below timer on tablet */
-                padding: 2px 8px;
-            }
-            button {
-                padding: 10px 16px;
-                font-size: 15px;
-                margin: 0 4px;
-            }
-            .answer-item {
-                font-size: 16px;
-                padding: 10px;
-            }
+            .slide { width: 94%; height: 88vh; margin: 3vh auto; }
+            .header { padding: 14px 22px; }
+            .content { padding: 22px; gap: 20px; }
+            .nav { padding: 14px 22px 16px; }
+            .question-text { font-size: calc(19px * var(--font-scale)); }
+            .choice { padding: 13px 16px; }
+            .choice-text { font-size: calc(15px * var(--font-scale)); }
         }
 
         @media screen and (max-width: 768px) {
-            body {
-                height: 100vh;
-                overflow: auto;
-            }
+            body { overflow: auto; }
             .slide {
-                width: 98%;
+                width: 97%;
                 height: auto;
-                min-height: 80vh;
-                margin: 1vh auto;
-                padding: 12px;
+                min-height: 84vh;
+                margin: 1.5vh auto;
+                border-radius: 12px;
             }
-            .question {
-                font-size: 16px;
-                margin-bottom: 15px;
-                display: block;
+            .header {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 12px 18px;
             }
-            .choice {
-                padding: 10px;
-                font-size: 15px;
-                margin: 8px 0;
-            }
-            .question-number {
-                font-size: 13px;
-                top: 6px;
-                right: 12px;
-            }
-            .timer {
-                font-size: 15px;
-                top: 6px;
-                left: 12px;
-            }
-            .topic-name {
-                font-size: 13px;
-                top: 36px; /* Adjusted to be below timer on mobile */
-                padding: 2px 7px;
-            }
-            .navigation {
-                position: static;
-                margin-top: 15px;
-                width: auto;
-                background: white;
-                padding: 10px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            }
-            .navigation.fixed {
-                position: fixed !important;
-                bottom: 20px !important;
-                left: 50% !important;
-                transform: translateX(-50%) !important;
-                width: auto !important;
-                z-index: 1000 !important;
-                background: white !important;
-                padding: 10px !important;
-                border-radius: 8px !important;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
-            }
-            button {
-                padding: 9px 14px;
-                font-size: 14px;
-                margin: 0 3px;
-            }
-            .answer-item {
-                font-size: 15px;
-                padding: 8px;
-            }
-            .slide-content {
-                height: auto;
-                margin-top: 25px;
-                padding-bottom: 80px;
-            }
+            .topic-badge { order: 3; width: 100%; text-align: center; }
+            .content { padding: 18px; gap: 16px; }
+            .question-text { font-size: calc(17px * var(--font-scale)); }
+            .choice { padding: 12px 14px; gap: 10px; }
+            .choice-text { font-size: calc(14px * var(--font-scale)); }
+            .choice-letter { width: 26px; height: 26px; font-size: calc(11px * var(--font-scale)); }
+            .nav { padding: 12px 18px 14px; }
+            .btn { padding: 9px 20px; font-size: calc(13px * var(--font-scale)); }
+            .controls { bottom: 14px; }
+            .controls.left { left: 14px; }
+            .controls.right { right: 14px; }
+            .ctrl-btn { width: 36px; height: 36px; border-radius: 8px; font-size: 12px; }
         }
 
         @media screen and (max-width: 480px) {
-            .slide {
-                padding: 10px;
-            }
-            .question {
-                font-size: 15px;
-            }
-            .choice {
-                padding: 8px;
-                font-size: 14px;
-            }
-            .question-number {
-                font-size: 12px;
-                top: 5px;
-                right: 10px;
-            }
-            .timer {
-                font-size: 14px;
-                top: 5px;
-                left: 10px;
-            }
-            .topic-name {
-                font-size: 12px;
-                top: 35px; /* Adjusted to be below timer on small mobile */
-                padding: 2px 6px;
-            }
-            button {
-                padding: 8px 12px;
-                font-size: 13px;
-                margin: 0 2px;
-                width: 45%;
-                margin-bottom: 5px;
-            }
-            .navigation {
-                display: flex;
-                justify-content: center;
-                flex-wrap: wrap;
-            }
-            .answer-item {
-                font-size: 14px;
-                padding: 6px;
-            }
+            .slide { border-radius: 10px; }
+            .header { padding: 10px 14px; }
+            .content { padding: 14px; gap: 14px; }
+            .question-text { font-size: calc(15px * var(--font-scale)); }
+            .choice { padding: 10px 12px; border-radius: 10px; }
+            .choice-text { font-size: calc(13px * var(--font-scale)); }
+            .nav { flex-wrap: wrap; padding: 10px 14px; gap: 8px; }
+            .btn { width: 48%; text-align: center; padding: 9px 14px; font-size: calc(12px * var(--font-scale)); }
+            .answer-title { font-size: calc(21px * var(--font-scale)); }
+            .answer-item { font-size: calc(13px * var(--font-scale)); padding: 12px; }
+            .controls { bottom: 10px; gap: 5px; }
+            .controls.left { left: 10px; }
+            .controls.right { right: 10px; }
+            .ctrl-btn { width: 34px; height: 34px; border-radius: 8px; }
+            #answer-nav { bottom: 10px !important; }
         }
     </style>
 </head>
 <body>
-    <div class="progress-bar">
-        <div class="progress" id="progress"></div>
-    </div>
-    
+
     <!-- Question Slides -->
     {% for question in questions %}
     <div class="slide" id="slide-{{ loop.index }}">
-        <div class="timer" id="timer-{{ loop.index }}">Time: {{ timer_duration }}s</div>
-        <div class="question-number">Question {{ loop.index }} of {{ questions|length }}</div>
-        <div class="topic-name"><strong>Topic:</strong> {{ question.topic }}</div>
-        <div class="progress-bar">
-            <div class="progress" id="progress-{{ loop.index }}"></div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-{{ loop.index }}"></div>
         </div>
-        <div class="slide-content">
-            <div class="question">{{ question.question }}</div>
+        <div class="header">
+            <div class="slide-counter">
+                <span class="current">{{ loop.index }}</span> / {{ questions|length }}
+            </div>
+            <div class="topic-badge">{{ question.topic }}</div>
+            <div class="timer-pill safe" id="timer-{{ loop.index }}">{{ timer_duration }}s</div>
+        </div>
+        <div class="content">
+            <div class="question-text">{{ question.question }}</div>
             <div class="choices">
                 {% for choice in question.choices %}
                 <div class="choice">
-                    <strong>{{ choice.label }}:</strong> {{ choice.text }}
+                    <div class="choice-letter">{{ choice.label }}</div>
+                    <div class="choice-text">{{ choice.text }}</div>
                 </div>
                 {% endfor %}
             </div>
         </div>
+        <div class="nav" id="nav-{{ loop.index }}"></div>
     </div>
     {% endfor %}
 
     <!-- Answer Slide -->
     <div class="slide answer-slide" id="slide-{{ questions|length + 1 }}">
-        <h2 style="font-size: 32px; margin-top: 0;">Correct Answers</h2>
-        <div class="slide-content" style="padding-bottom: 100px;">
+        <div class="header">
+            <div class="answer-title">Correct Answers</div>
+        </div>
+        <div class="content">
             {% for answer in answers %}
             <div class="answer-item">
-                <strong style="font-size: 22px;">Q{{ loop.index }}:</strong>
-                <span style="font-size: 18px; color: #007bff;">(Topic: {{ questions[loop.index - 1].topic }})</span><br>
-                <span style="font-size: 20px;">{{ answer.question }}</span><br>
-                <strong style="font-size: 22px;">Answer:</strong>
-                <span style="font-size: 20px;">{{ answer.answer }} ({{ answer.correct_answer_text }})</span>
+                <span class="answer-q-num">Q{{ loop.index }}</span>
+                <span class="answer-topic-tag">{{ questions[loop.index - 1].topic }}</span>
+                <span class="answer-question">{{ answer.question }}</span>
+                <div class="answer-correct">
+                    Answer: {{ answer.answer }} <span>&mdash; {{ answer.correct_answer_text }}</span>
+                </div>
             </div>
             {% endfor %}
         </div>
     </div>
-    
-    <script>
-        let currentSlide = 1;
-        const totalSlides = {{ questions|length + 1 }};
-        const timerDuration = {{ timer_duration }};
-        let timers = {};
 
-        // Initialize all timers
+    <script>
+        const TOTAL = {{ questions|length }};
+        const TOTAL_SLIDES = TOTAL + 1;
+        const DURATION = {{ timer_duration }};
+
+        let currentSlide = 1;
+        let timers = {};
+        let intervals = {};
+
         function initTimers() {
-            for (let i = 1; i <= {{ questions|length }}; i++) {
-                timers[i] = timerDuration;
-            }
+            for (let i = 1; i <= TOTAL; i++) timers[i] = DURATION;
         }
 
-        // Start timer for a specific slide
-        function startTimer(slideNum) {
-            if (timers[slideNum] === undefined) return;
+        function timerState(pct) {
+            if (pct > 60) return 'safe';
+            if (pct > 30) return 'warning';
+            return 'danger';
+        }
 
-            const timerElement = document.getElementById(`timer-${slideNum}`);
-            const progressBarElement = document.getElementById(`progress-${slideNum}`);
+        function updateTimer(n) {
+            const left = timers[n];
+            const pct = (left / DURATION) * 100;
+            const el = document.getElementById(`timer-${n}`);
+            const bar = document.getElementById(`progress-${n}`);
 
-            // Clear any existing interval for this slide
-            if (window[`interval_${slideNum}`]) {
-                clearInterval(window[`interval_${slideNum}`]);
+            if (el) {
+                el.textContent = left + 's';
+                el.className = 'timer-pill ' + timerState(pct);
             }
+            if (bar) bar.style.width = pct + '%';
+        }
 
-            // Update timer display immediately
-            updateTimerDisplay(slideNum, timerElement, progressBarElement);
+        function startTimer(n) {
+            if (timers[n] === undefined) return;
+            if (intervals[n]) clearInterval(intervals[n]);
+            updateTimer(n);
 
-            // Set up the interval
-            window[`interval_${slideNum}`] = setInterval(function() {
-                timers[slideNum]--;
-
-                if (timers[slideNum] <= 0) {
-                    timers[slideNum] = 0;
-                    clearInterval(window[`interval_${slideNum}`]);
-
-                    // Auto advance to next slide when time runs out (but not to answers slide)
-                    if (slideNum < {{ questions|length }}) {
-                        setTimeout(() => showSlide(slideNum + 1), 1000);
-                    }
-                    // Do not auto-advance to the answers slide
+            intervals[n] = setInterval(() => {
+                timers[n]--;
+                if (timers[n] <= 0) {
+                    timers[n] = 0;
+                    clearInterval(intervals[n]);
+                    if (n < TOTAL) setTimeout(() => showSlide(n + 1), 1000);
                 }
-
-                updateTimerDisplay(slideNum, timerElement, progressBarElement);
+                updateTimer(n);
             }, 1000);
         }
 
-        // Update timer display
-        function updateTimerDisplay(slideNum, timerElement, progressBarElement) {
-            const timeLeft = timers[slideNum];
-            const percentage = (timeLeft / timerDuration) * 100;
-            let color = '#5cb85c'; // green
-
-            if (percentage < 30) {
-                color = '#d9534f'; // red
-            } else if (percentage < 60) {
-                color = '#f0ad4e'; // yellow
-            }
-
-            timerElement.innerHTML = `Time: ${timeLeft}s`;
-            timerElement.style.color = color;
-
-            // Update the individual slide progress bar
-            if (progressBarElement) {
-                progressBarElement.style.width = `${percentage}%`;
+        function stopAll() {
+            for (let i = 1; i <= TOTAL; i++) {
+                if (intervals[i]) { clearInterval(intervals[i]); intervals[i] = null; }
             }
         }
 
-        // Show a specific slide
-        function showSlide(slideNumber) {
-            // Hide all slides
-            for (let i = 1; i <= totalSlides; i++) {
-                document.getElementById(`slide-${i}`).classList.remove('active');
-            }
-
-            // Stop all timers
-            for (let i = 1; i <= {{ questions|length }}; i++) {
-                if (window[`interval_${i}`]) {
-                    clearInterval(window[`interval_${i}`]);
-                }
-            }
-
-            // Reset all timers to initial duration
-            for (let i = 1; i <= {{ questions|length }}; i++) {
-                timers[i] = timerDuration;
-                // Update timer display to show full time again
-                const timerElement = document.getElementById(`timer-${i}`);
-                const progressBarElement = document.getElementById(`progress-${i}`);
-                if (timerElement && progressBarElement) {
-                    updateTimerDisplay(i, timerElement, progressBarElement);
-                }
-            }
-
-            // Show the requested slide
-            document.getElementById(`slide-${slideNumber}`).classList.add('active');
-            currentSlide = slideNumber;
-
-            // Update navigation buttons based on current slide
-            updateNavigation();
-
-            // Start timer if it's a question slide
-            if (slideNumber <= {{ questions|length }}) {
-                startTimer(slideNumber);
-            }
+        function resetAll() {
+            for (let i = 1; i <= TOTAL; i++) { timers[i] = DURATION; updateTimer(i); }
         }
 
-        // Update navigation buttons based on current slide
-        function updateNavigation() {
-            // Remove any existing navigation elements including the fixed answer nav
-            const navElements = document.querySelectorAll('.navigation');
-            navElements.forEach(el => {
-                if (el.parentNode) {
-                    el.parentNode.removeChild(el);
-                }
-            });
+        function showSlide(n) {
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            stopAll();
+            resetAll();
 
-            // Also remove the fixed answer nav if it exists
-            const answerNav = document.getElementById('answer-nav');
-            if (answerNav) {
-                if (answerNav.parentNode) {
-                    answerNav.parentNode.removeChild(answerNav);
-                }
+            const el = document.getElementById(`slide-${n}`);
+            if (el) {
+                el.classList.add('active');
+                el.style.animation = 'none';
+                el.offsetHeight;
+                el.style.animation = '';
             }
 
-            if (currentSlide === {{ questions|length + 1 }}) {
-                // For the answer slide, create fixed navigation that stays at the bottom of the viewport
-                const navDiv = document.createElement('div');
-                navDiv.className = 'navigation fixed';
-                navDiv.id = 'answer-nav'; // Give it a specific ID to identify it
-                navDiv.innerHTML = `
-                    <button onclick="showSlide({{ questions|length }})">Previous</button>
-                    <button onclick="showSlide(1)">Restart Quiz</button>
+            currentSlide = n;
+            updateNav();
+            if (n <= TOTAL) startTimer(n);
+        }
+
+        function updateNav() {
+            document.querySelectorAll('.nav').forEach(el => el.innerHTML = '');
+            const an = document.getElementById('answer-nav');
+            if (an) an.remove();
+
+            if (currentSlide === TOTAL_SLIDES) {
+                const nav = document.createElement('div');
+                nav.className = 'nav';
+                nav.id = 'answer-nav';
+                nav.innerHTML = `
+                    <button class="btn btn-ghost" onclick="showSlide(${TOTAL})">Previous</button>
+                    <button class="btn btn-success" onclick="showSlide(1)">Restart Quiz</button>
                 `;
-
-                // Add it to the body so it stays fixed
-                document.body.appendChild(navDiv);
+                document.body.appendChild(nav);
             } else {
-                // Create navigation for other slides normally
-                const slide = document.getElementById(`slide-${currentSlide}`);
-                const navDiv = document.createElement('div');
-                navDiv.className = 'navigation';
+                const navEl = document.getElementById(`nav-${currentSlide}`);
+                if (!navEl) return;
 
                 if (currentSlide === 1) {
-                    // First slide: only Next button
-                    navDiv.innerHTML = `<button onclick="showSlide(2)">Next</button>`;
-                } else if (currentSlide < {{ questions|length }}) {
-                    // Middle question slides: Previous and Next buttons
-                    navDiv.innerHTML = `
-                        <button onclick="showSlide(${currentSlide - 1})">Previous</button>
-                        <button onclick="showSlide(${currentSlide + 1})">Next</button>
+                    navEl.innerHTML = `<button class="btn btn-primary" onclick="showSlide(2)">Next</button>`;
+                } else if (currentSlide < TOTAL) {
+                    navEl.innerHTML = `
+                        <button class="btn btn-ghost" onclick="showSlide(${currentSlide - 1})">Previous</button>
+                        <button class="btn btn-primary" onclick="showSlide(${currentSlide + 1})">Next</button>
                     `;
-                } else if (currentSlide === {{ questions|length }}) {
-                    // Last question slide: Previous and Show Answers buttons
-                    navDiv.innerHTML = `
-                        <button onclick="showSlide(${currentSlide - 1})">Previous</button>
-                        <button onclick="showSlide(${currentSlide + 1})">Show Answers</button>
+                } else {
+                    navEl.innerHTML = `
+                        <button class="btn btn-ghost" onclick="showSlide(${currentSlide - 1})">Previous</button>
+                        <button class="btn btn-success" onclick="showSlide(${currentSlide + 1})">Show Answers</button>
                     `;
                 }
-
-                slide.appendChild(navDiv);
             }
         }
 
-        // Fullscreen functionality
+        let fontScale = 1;
+        function changeFontSize(d) {
+            fontScale = Math.round((fontScale + d) * 10) / 10;
+            fontScale = Math.max(0.6, Math.min(1.8, fontScale));
+            document.documentElement.style.setProperty('--font-scale', fontScale);
+        }
+
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
-                });
+                document.documentElement.requestFullscreen().catch(() => {});
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+                document.exitFullscreen();
             }
         }
 
-        // Initialize the first slide
-        window.onload = function() {
+        window.onload = () => {
             initTimers();
             showSlide(1);
 
-            // Create fullscreen button
-            const fsButton = document.createElement('button');
-            fsButton.id = 'fullscreenBtn';
-            fsButton.innerHTML = '⛶'; // Unicode for fullscreen icon
-            fsButton.title = 'Toggle Fullscreen';
-            fsButton.style.position = 'fixed';
-            fsButton.style.bottom = '20px';
-            fsButton.style.right = '20px';
-            fsButton.style.zIndex = '1001';
-            fsButton.style.padding = '10px';
-            fsButton.style.fontSize = '18px';
-            fsButton.style.border = 'none';
-            fsButton.style.borderRadius = '50%';
-            fsButton.style.backgroundColor = '#4CAF50';
-            fsButton.style.color = 'white';
-            fsButton.style.cursor = 'pointer';
-            fsButton.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
-            fsButton.onclick = toggleFullscreen;
+            const left = document.createElement('div');
+            left.className = 'controls left';
+            left.innerHTML = `
+                <button class="ctrl-btn" title="Decrease font" onclick="changeFontSize(-0.1)">A&minus;</button>
+                <button class="ctrl-btn" title="Increase font" onclick="changeFontSize(0.1)">A+</button>
+            `;
+            document.body.appendChild(left);
 
-            document.body.appendChild(fsButton);
+            const right = document.createElement('div');
+            right.className = 'controls right';
+            right.innerHTML = `
+                <button class="ctrl-btn" title="Fullscreen" onclick="toggleFullscreen()">&#x26F6;</button>
+            `;
+            document.body.appendChild(right);
         };
 
-        // Handle keyboard navigation
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'ArrowRight') {
-                if (currentSlide < totalSlides) {
-                    showSlide(currentSlide + 1);
-                }
-            } else if (event.key === 'ArrowLeft') {
-                if (currentSlide > 1) {
-                    showSlide(currentSlide - 1);
-                }
-            }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight' && currentSlide < TOTAL_SLIDES) showSlide(currentSlide + 1);
+            if (e.key === 'ArrowLeft' && currentSlide > 1) showSlide(currentSlide - 1);
         });
     </script>
 </body>

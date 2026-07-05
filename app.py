@@ -8,6 +8,10 @@ import json
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
 
+# Use absolute path for uploads to avoid drive mapping issues
+_BASEDIR = os.path.abspath(os.path.dirname(__file__))
+_UPLOAD_DIR = os.path.join(_BASEDIR, 'uploads')
+
 # Define expected columns
 EXPECTED_COLUMNS = [
     'Subject Code', 'Description', 'Exam Period', 'Learning Outcome', 
@@ -34,8 +38,8 @@ def upload_file():
 
     if file and file.filename.lower().endswith(('.xlsx', '.xls')):
         # Save the file temporarily
-        filepath = os.path.join('uploads', file.filename)
-        os.makedirs('uploads', exist_ok=True)
+        filepath = os.path.join(_UPLOAD_DIR, file.filename)
+        os.makedirs(_UPLOAD_DIR, exist_ok=True)
         file.save(filepath)
 
         try:
@@ -137,22 +141,45 @@ def generate_quiz():
 
                     # Add these questions to the quiz in order
                     for _, row in selected_topic_questions.iterrows():
+                        # Extract per-question timer from Excel, fall back to user input
+                        timer_val = row.get('Timer (Seconds)')
+                        if pd.notna(timer_val):
+                            timer_val = int(timer_val)
+                        else:
+                            timer_val = None
+
+                        # Build choices and shuffle their order
+                        original_answer_label = row['Answer'].strip()  # e.g., 'A', 'B', 'C', 'D'
+                        choices = [
+                            {'original_label': 'A', 'text': row['Choice A']},
+                            {'original_label': 'B', 'text': row['Choice B']},
+                            {'original_label': 'C', 'text': row['Choice C']},
+                            {'original_label': 'D', 'text': row['Choice D']},
+                        ]
+                        random.shuffle(choices)
+                        # Reassign display labels A-D based on shuffled order
+                        for i, choice in enumerate(choices):
+                            choice['label'] = chr(65 + i)
+
+                        # Find the new label by tracking the original label through the shuffle
+                        new_answer_label = row['Answer']  # fallback
+                        for choice in choices:
+                            if choice['original_label'] == original_answer_label:
+                                new_answer_label = choice['label']
+                                break
+
                         question_data = {
                             'question': row['QUESTION'],
                             'topic': row['Topic'],  # Add topic information
-                            'choices': [
-                                {'label': 'A', 'text': row['Choice A']},
-                                {'label': 'B', 'text': row['Choice B']},
-                                {'label': 'C', 'text': row['Choice C']},
-                                {'label': 'D', 'text': row['Choice D']}
-                            ],
-                            'answer': row['Answer'],
-                            'correct_answer_text': row['Correct answer in Words']
+                            'choices': choices,
+                            'answer': new_answer_label,
+                            'correct_answer_text': row['Correct answer in Words'],
+                            'timer': timer_val
                         }
                         quiz_data['questions'].append(question_data)
                         quiz_data['answers'].append({
                             'question': row['QUESTION'],
-                            'answer': row['Answer'],
+                            'answer': new_answer_label,
                             'correct_answer_text': row['Correct answer in Words']
                         })
                 except ValueError:

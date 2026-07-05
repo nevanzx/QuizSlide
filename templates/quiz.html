@@ -47,7 +47,7 @@
             display: none;
             position: relative;
             width: 90%;
-            max-width: 920px;
+            max-width: 1200px;
             height: 86vh;
             margin: 4vh auto;
             background: var(--surface);
@@ -150,7 +150,7 @@
         .content {
             flex: 1;
             overflow-y: auto;
-            padding: 28px;
+            padding: 9px;
             display: flex;
             flex-direction: column;
             gap: 24px;
@@ -182,7 +182,7 @@
             display: flex;
             align-items: flex-start;
             gap: 14px;
-            padding: 15px 18px;
+            padding: 3px 5px;
             background: var(--bg);
             border: 1.5px solid var(--border);
             border-radius: 12px;
@@ -447,7 +447,7 @@
                 <span class="current">{{ loop.index }}</span> / {{ questions|length }}
             </div>
             <div class="topic-badge">{{ question.topic }}</div>
-            <div class="timer-pill safe" id="timer-{{ loop.index }}">{{ timer_duration }}s</div>
+            <div class="timer-pill safe" id="timer-{{ loop.index }}">{{ question.timer if question.timer else timer_duration }}s</div>
         </div>
         <div class="content">
             <div class="question-text">{{ question.question }}</div>
@@ -487,13 +487,17 @@
         const TOTAL = {{ questions|length }};
         const TOTAL_SLIDES = TOTAL + 1;
         const DURATION = {{ timer_duration }};
+        const QUESTION_TIMERS = [
+            {% for q in questions %}{{ q.timer if q.timer else timer_duration }}{% if not loop.last %}, {% endif %}{% endfor %}
+        ];
 
         let currentSlide = 1;
         let timers = {};
         let intervals = {};
+        let paused = false;
 
         function initTimers() {
-            for (let i = 1; i <= TOTAL; i++) timers[i] = DURATION;
+            for (let i = 1; i <= TOTAL; i++) timers[i] = QUESTION_TIMERS[i - 1] || DURATION;
         }
 
         function timerState(pct) {
@@ -504,7 +508,8 @@
 
         function updateTimer(n) {
             const left = timers[n];
-            const pct = (left / DURATION) * 100;
+            const max = QUESTION_TIMERS[n - 1] || DURATION;
+            const pct = (left / max) * 100;
             const el = document.getElementById(`timer-${n}`);
             const bar = document.getElementById(`progress-${n}`);
 
@@ -538,7 +543,25 @@
         }
 
         function resetAll() {
-            for (let i = 1; i <= TOTAL; i++) { timers[i] = DURATION; updateTimer(i); }
+            for (let i = 1; i <= TOTAL; i++) { timers[i] = QUESTION_TIMERS[i - 1] || DURATION; updateTimer(i); }
+        }
+
+        function togglePause() {
+            if (paused) {
+                paused = false;
+                if (currentSlide <= TOTAL) startTimer(currentSlide);
+            } else {
+                paused = true;
+                if (intervals[currentSlide]) {
+                    clearInterval(intervals[currentSlide]);
+                    intervals[currentSlide] = null;
+                }
+            }
+            updatePauseBtn();
+        }
+
+        function updatePauseBtn() {
+            document.querySelectorAll('.pause-btn').forEach(b => b.textContent = paused ? '▶' : '⏸');
         }
 
         function showSlide(n) {
@@ -554,9 +577,20 @@
                 el.style.animation = '';
             }
 
+            paused = false;
             currentSlide = n;
             updateNav();
             if (n <= TOTAL) startTimer(n);
+        }
+
+        function prependZoom(nav) {
+            const zoomDiv = document.createElement('div');
+            zoomDiv.style.cssText = 'display:flex;gap:6px;margin-right:auto;align-items:center;';
+            zoomDiv.innerHTML = `
+                <button class="ctrl-btn" title="Decrease font" onclick="changeFontSize(-0.1)">A&minus;</button>
+                <button class="ctrl-btn" title="Increase font" onclick="changeFontSize(0.1)">A+</button>
+            `;
+            nav.insertBefore(zoomDiv, nav.firstChild);
         }
 
         function updateNav() {
@@ -572,24 +606,29 @@
                     <button class="btn btn-ghost" onclick="showSlide(${TOTAL})">Previous</button>
                     <button class="btn btn-success" onclick="showSlide(1)">Restart Quiz</button>
                 `;
+                prependZoom(nav);
                 document.body.appendChild(nav);
             } else {
                 const navEl = document.getElementById(`nav-${currentSlide}`);
                 if (!navEl) return;
 
                 if (currentSlide === 1) {
-                    navEl.innerHTML = `<button class="btn btn-primary" onclick="showSlide(2)">Next</button>`;
+                    navEl.innerHTML = `<button class="btn btn-ghost pause-btn" onclick="togglePause()">⏸</button>
+                        <button class="btn btn-primary" onclick="showSlide(2)">Next</button>`;
                 } else if (currentSlide < TOTAL) {
                     navEl.innerHTML = `
                         <button class="btn btn-ghost" onclick="showSlide(${currentSlide - 1})">Previous</button>
+                        <button class="btn btn-ghost pause-btn" onclick="togglePause()">⏸</button>
                         <button class="btn btn-primary" onclick="showSlide(${currentSlide + 1})">Next</button>
                     `;
                 } else {
                     navEl.innerHTML = `
                         <button class="btn btn-ghost" onclick="showSlide(${currentSlide - 1})">Previous</button>
+                        <button class="btn btn-ghost pause-btn" onclick="togglePause()">⏸</button>
                         <button class="btn btn-success" onclick="showSlide(${currentSlide + 1})">Show Answers</button>
                     `;
                 }
+                prependZoom(navEl);
             }
         }
 
@@ -611,14 +650,6 @@
         window.onload = () => {
             initTimers();
             showSlide(1);
-
-            const left = document.createElement('div');
-            left.className = 'controls left';
-            left.innerHTML = `
-                <button class="ctrl-btn" title="Decrease font" onclick="changeFontSize(-0.1)">A&minus;</button>
-                <button class="ctrl-btn" title="Increase font" onclick="changeFontSize(0.1)">A+</button>
-            `;
-            document.body.appendChild(left);
 
             const right = document.createElement('div');
             right.className = 'controls right';
